@@ -26,7 +26,7 @@ iconutil -c icns "$POST_STAGING/AppIcon.iconset" -o "$POST_APP/Contents/Resource
 rm -rf "$POST_STAGING/AppIcon.iconset"
 codesign --force --sign - --timestamp=none "$POST_APP"
 codesign --verify --strict "$POST_APP"
-lipo -verify_arch x86_64 arm64 "$POST_APP/Contents/MacOS/TouchBarPost"
+lipo "$POST_APP/Contents/MacOS/TouchBarPost" -verify_arch x86_64 arm64
 "$POST_APP/Contents/MacOS/TouchBarPost" --smoke-test
 cp README.md README.tr.md LICENSE CHANGELOG.md "$POST_STAGING/"
 cp -R docs "$POST_STAGING/docs"
