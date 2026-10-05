@@ -16,15 +16,15 @@ Saved messages appear together in one list. Use **+ New note**, write another me
 
 Use the **Touch Bar space** slider to choose a strip width from **240 to 560 points**. The default is **400 points**. The exact value appears beside the slider, and the on-screen preview shows the requested width. Release the slider to save your choice; it applies to every message and survives reopening. The physical strip can become narrower if macOS provides less space. The separate **+** button and macOS Control Strip also need room.
 
-Your chosen message is remembered after reopening. Valid edits also save when you switch messages, close the window or quit. If saving fails, the draft stays available and navigation stops. An empty editor leaves the saved message intact; use **Delete** to remove it.
-
-![Announcement strip](docs/touchbar-announcement.png)
-![Reminder strip](docs/touchbar-reminder.png)
-
 Rendered message strips at the minimum and maximum requested widths:
 
 ![Compact 240-point strip](docs/touchbar-compact.png)
 ![Wide 560-point strip](docs/touchbar-wide.png)
+
+Your chosen message is remembered after reopening. Valid edits also save when you switch messages, close the window or quit. If saving fails, the draft stays available and navigation stops. An empty editor leaves the saved message intact; use **Delete** to remove it.
+
+![Announcement strip](docs/touchbar-announcement.png)
+![Reminder strip](docs/touchbar-reminder.png)
 
 ## Install and use
 

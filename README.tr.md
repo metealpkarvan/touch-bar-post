@@ -16,15 +16,15 @@ Kayıtlı mesajların tek listede görünür. **+ Yeni not** düğmesine bas, ba
 
 **Touch Bar alanı** kaydırıcısıyla şeridi **240–560 pt** arasında ayarla; varsayılan **400 pt**. Seçtiğin sayı kaydırıcının yanında görünür; ekrandaki önizleme istenen genişliği gösterir. Kaydırıcıyı bıraktığında tercih kaydedilir, bütün mesajlara uygulanır ve yeniden açılışta korunur. macOS daha az yer verirse fiziksel şerit daralabilir. Ayrı **+** düğmesi ve macOS denetim şeridi de yer kaplar.
 
-Seçtiğin mesaj yeniden açılışta hatırlanır. Geçerli değişiklikler mesaj değiştirirken, pencereyi kapatırken veya uygulamadan çıkarken de kaydedilir. Kayıt başarısız olursa taslağın korunur ve gezinme durur. Alanı boşaltmak kayıtlı mesajı silmez; silmek için **Sil** düğmesini kullan.
-
-![Duyuru şeridi](docs/touchbar-announcement.png)
-![Hatırlatma şeridi](docs/touchbar-reminder.png)
-
 En dar ve en geniş ayarda uygulamanın çizdiği mesaj şeritleri:
 
 ![240 pt dar şerit](docs/touchbar-compact.png)
 ![560 pt geniş şerit](docs/touchbar-wide.png)
+
+Seçtiğin mesaj yeniden açılışta hatırlanır. Geçerli değişiklikler mesaj değiştirirken, pencereyi kapatırken veya uygulamadan çıkarken de kaydedilir. Kayıt başarısız olursa taslağın korunur ve gezinme durur. Alanı boşaltmak kayıtlı mesajı silmez; silmek için **Sil** düğmesini kullan.
+
+![Duyuru şeridi](docs/touchbar-announcement.png)
+![Hatırlatma şeridi](docs/touchbar-reminder.png)
 
 ## Kur ve kullan
 
