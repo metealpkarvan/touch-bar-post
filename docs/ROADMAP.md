@@ -1,7 +1,7 @@
-# Roadmap
+# Keep the three jobs simple
 
-Version 1 ships announcements, notes, one-shot reminders, three scenes, curtain, scene pinning, local backups and the desktop strip.
+Version 1.1 provides notes, one-shot reminders and scrolling announcements through one message editor. Selections and valid edits persist. Existing v1 messages remain readable, and the downloadable app supports Intel and Apple Silicon.
 
-Next work should begin with a physical Touch Bar session and notification-delivery checks from the device checklist. Validate whether the flexible rail leaves enough room for the normal Control Strip, whether the action names are understood and whether twelve-second rotation feels calm.
+The next priority is the physical Touch Bar and notification-delivery session in the device checklist. Check tap targets at the normal Control Strip width, confirm that a saved message remains easy to find, and observe deadline behaviour through sleep/wake and app quit.
 
-Further candidates: person-named scenes, opt-in login launch, recurring reminders with explicit daylight-saving semantics, configurable postponement intervals and a signed/notarized distribution. None is included or promised as working in this release. Keep compatibility and recovery checks as those features develop.
+Future work should address demonstrated usability problems or improve distribution signing and notarization. More dashboards, scenes, automatic rotation, accounts and AI services are outside this release's purpose. Preserve archive compatibility and recovery tests when making changes.

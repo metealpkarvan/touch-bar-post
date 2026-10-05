@@ -1,13 +1,15 @@
-# A small postal desk
+# One message, one action
 
-Şerit turns a narrow strip into a personal message surface. The product starts with three distinct intentions: an announcement can be seen, a note can be copied, and a reminder can be completed. The action button follows that intention instead of guessing from the text.
+Şerit 1.1 starts with three choices: Note, Reminder and Announcement. The window has one plain-text field and a Save button. Only reminders show the date/time input and +5/+15/+60 minute shortcuts. Saved reminders also show Done and Snooze 5 min.
 
-The dark desk and four stamp inks are drawn with AppKit primitives. No external stock imagery, copied interface or generated branding asset is included. The envelope icon and screenshots are produced by the repository’s own code.
+One list contains all active messages. New starts another message; Delete removes the selected record. A chosen message stays on the strip and is remembered after reopening. A newly due reminder takes temporary priority without replacing text currently being edited. There is no automatic message rotation.
 
-Scenes offer context without accounts or automatic location tracking. Desk, Break and Home are fixed names in version 1. Due reminders deliberately cross scene boundaries so switching to a work scene does not bury a personal reminder. Pinned cards only outrank ordinary scene cards; a due reminder remains first.
+Announcements alone can scroll. Notes and reminders remain still; tapping the strip's centre opens the full editor. A two-second pause precedes long announcement scrolling, and macOS Reduce Motion suppresses it. Previous, message, action and next use the same native buttons in the window and the physical Touch Bar. The physical bar adds a single + button for a new note.
 
-A person controls the pace. A two-second pause precedes long-text scrolling, cards rotate every twelve seconds when no reminder is due, and manually selecting a card holds the strip. Reduce Motion suppresses text animation. Privacy curtain disables strip copying while concealing its content. It is a display aid, not data encryption.
+The compact dark interface and app icon are drawn with native AppKit primitives. Screenshots are rendered from the working app, using fictional records. No generated mockup is presented as running software.
 
-The physical and desktop strips share the same NSButton actions. Their centre opens the full editor; long notes are readable there even with motion disabled. The editor uses labelled native fields, a plain text view, a date picker, keyboard menus and accessible button labels. A full VoiceOver audit and physical Touch Bar ergonomics session remain future work.
+Scene, pin and colour controls from version 1.0 are removed from the editor. Existing metadata stays in the archive; old pinned messages retain list priority. Backup/recovery, notification permission, privacy and language are in native macOS menus. No account or setup wizard is needed.
 
-Public AppKit APIs constrain the Touch Bar to the frontmost app. A menu item and optional floating strip offer practical return paths. The app does not use private global Touch Bar APIs, system injection or accessibility interception.
+Valid drafts save when navigating to another message, closing the window or quitting. A failed save retains both the draft and the previous archive and prevents navigation. Emptying the editor does not erase a saved message; deletion is explicit.
+
+The privacy menu conceals strip text and message titles in the status menu. It is a display preference, not encryption: the editor and local archive remain readable. Public AppKit Touch Bars follow the frontmost app. The window preview provides the same controls on Macs without that hardware.

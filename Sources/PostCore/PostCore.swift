@@ -11,6 +11,7 @@ public struct Settings: Codable, Equatable {
     public var motion = true
     public var notifications = false
     public var language: Language = .tr
+    public var selectedCardID: UUID? = nil
     public init() {}
 }
 
@@ -34,6 +35,28 @@ public struct Card: Codable, Equatable, Identifiable {
         self.pinned = pinned; createdAt = now; updatedAt = now; self.dueAt = dueAt; doneAt = nil
     }
     public func isDue(at now: Date) -> Bool { kind == .reminder && doneAt == nil && (dueAt.map { $0 <= now } ?? false) }
+    public var messageText: String { title + (body.isEmpty ? "" : "\n" + body) }
+    /// Adapt a single editor to the existing v1 title/body format without changing metadata.
+    public mutating func setMessageText(_ text: String) throws {
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty, normalized.count <= 481 else {
+            throw PostError.invalid("Message: 1–481 characters / Mesaj: 1–481 karakter.")
+        }
+        if normalized == messageText.trimmingCharacters(in: .whitespacesAndNewlines) { return }
+        let newTitle: String, newBody: String
+        if let newline = normalized.firstIndex(where: { $0.isNewline }), normalized[..<newline].count <= 80 {
+            newTitle = String(normalized[..<newline]).trimmingCharacters(in: .whitespacesAndNewlines)
+            newBody = String(normalized[normalized.index(after: newline)...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            let boundary = normalized.index(normalized.startIndex, offsetBy: min(80, normalized.count))
+            newTitle = String(normalized[..<boundary]).trimmingCharacters(in: .whitespacesAndNewlines)
+            newBody = String(normalized[boundary...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        guard !newTitle.isEmpty, newTitle.count <= 80, newBody.count <= 400 else {
+            throw PostError.invalid("First line: 1–80 characters; remainder: 0–400 / İlk satır: 1–80, devamı: 0–400 karakter.")
+        }
+        title = newTitle; body = newBody
+    }
 }
 
 public enum PostError: Error, LocalizedError {
@@ -50,6 +73,11 @@ public struct Archive: Codable, Equatable {
         guard version == 1 else { throw PostError.invalid("Unsupported archive version / Desteklenmeyen yedek sürümü.") }
         guard cards.count <= 200 else { throw PostError.invalid("Maximum 200 cards / En fazla 200 kart.") }
         guard Set(cards.map(\.id)).count == cards.count else { throw PostError.invalid("Duplicate card IDs / Tekrarlanan kart kimlikleri.") }
+        if let selected = settings.selectedCardID {
+            guard cards.contains(where: { $0.id == selected && $0.doneAt == nil }) else {
+                throw PostError.invalid("Selected message must be active / Seçili mesaj etkin olmalıdır.")
+            }
+        }
         for card in cards {
             guard !card.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                   card.title.count <= 80, card.body.count <= 400 else {
@@ -86,7 +114,10 @@ public struct Archive: Codable, Equatable {
     public mutating func finish(_ id: UUID, at now: Date) throws {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { throw PostError.invalid("Card missing / Kart bulunamadı.") }
         guard cards[index].doneAt == nil else { return }
-        var card = cards[index]; card.doneAt = now; card.updatedAt = now; try put(card)
+        var candidate = self
+        if candidate.settings.selectedCardID == id { candidate.settings.selectedCardID = nil }
+        var card = cards[index]; card.doneAt = now; card.updatedAt = now; try candidate.put(card)
+        self = candidate
     }
     public mutating func restore(_ id: UUID, at now: Date) throws {
         guard var card = cards.first(where: { $0.id == id }) else { throw PostError.invalid("Card missing / Kart bulunamadı.") }
@@ -97,7 +128,10 @@ public struct Archive: Codable, Equatable {
               card.kind == .reminder, card.doneAt == nil else { throw PostError.invalid("Cannot postpone this card / Bu kart ertelenemiyor.") }
         card.dueAt = now.addingTimeInterval(Double(minutes) * 60); card.updatedAt = now; try put(card)
     }
-    public mutating func remove(_ id: UUID) { cards.removeAll { $0.id == id } }
+    public mutating func remove(_ id: UUID) {
+        cards.removeAll { $0.id == id }
+        if settings.selectedCardID == id { settings.selectedCardID = nil }
+    }
     public func queue(at now: Date) -> [Card] {
         let pending = cards.filter { $0.doneAt == nil }
         let due = pending.filter { $0.isDue(at: now) }.sorted(by: Self.dueOrder)
@@ -108,6 +142,18 @@ public struct Archive: Codable, Equatable {
             return $0.id.uuidString < $1.id.uuidString
         }
         return due + scene
+    }
+    /// One simple list, including cards saved under any of the earlier scenes.
+    /// Due reminders remain first so a newly added note cannot hide a deadline.
+    public func simpleQueue(at now: Date) -> [Card] {
+        let pending = cards.filter { $0.doneAt == nil }
+        let due = pending.filter { $0.isDue(at: now) }.sorted(by: Self.dueOrder)
+        let other = pending.filter { !$0.isDue(at: now) }.sorted {
+            if $0.pinned != $1.pinned { return $0.pinned }
+            if $0.createdAt != $1.createdAt { return $0.createdAt > $1.createdAt }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+        return due + other
     }
     public func notificationCards(at now: Date) -> [Card] {
         Array(cards.filter { $0.kind == .reminder && $0.doneAt == nil && ($0.dueAt.map { $0 > now } ?? false) }

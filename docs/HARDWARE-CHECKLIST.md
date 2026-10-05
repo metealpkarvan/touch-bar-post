@@ -1,13 +1,14 @@
-# Device and system checks still requiring a person
+# Device checks requiring a person
 
-These are manual verification steps, not a claim they were performed automatically.
+These steps are manual checks, not a claim they were performed automatically. Use fictional messages.
 
-1. On a Touch Bar MacBook Pro, bring Şerit forward. Check the scene popover, text rail, arrows, + button and curtain at the system’s normal Control Strip width.
-2. Tap long and short messages. Verify the editor opens and no single finger touch triggers two actions. Hold a card, resume it and compare scrolling with Reduce Motion enabled.
-3. In the reminder editor choose a deadline two minutes ahead and explicitly allow notifications. Move to another app. Confirm the banner follows your system settings; open the card from the banner. Deny permission and check the strip/menu still work.
-4. Schedule another reminder, quit Şerit normally and check delivery. Test Focus mode, sleep/wake and a deadline that passed while the app was closed. Old deadlines should appear ready on reopening without replaying old alerts.
-5. Edit, postpone, complete or delete a pending reminder. Confirm the old OS request does not produce a stale banner. Check curtain produces generic future alerts and removes this app’s existing delivered alerts.
-6. Check Intel and Apple Silicon installations independently. For a Mac without Touch Bar, exercise the window strip and floating strip.
-7. Export a backup, restart the app, restore it, and find the recovery copy. Test keyboard access, native field editing, VoiceOver labels, local date formats and a long Turkish/emoji title.
+1. Bring Şerit forward on a Touch Bar MacBook Pro. Check the strip, arrows, message action and + button at the normal Control Strip width. Other apps should continue showing their own controls when frontmost.
+2. Tap short/long notes and announcements. The centre should open the full editor. Notes stay still; long announcements scroll and obey Reduce Motion. Verify one touch invokes one action.
+3. Edit a note, switch to another, close/reopen the window and quit/relaunch normally. Valid text and the selected message should remain. Confirm an empty editor does not delete the saved record.
+4. Create a reminder two minutes ahead and explicitly enable notifications from the menu. Move to another app; verify delivery under the current system settings and open the message from its banner. With permission denied, the strip and in-app reminder must still work.
+5. Schedule a reminder, quit Şerit and observe delivery. Test Focus, sleep/wake and a deadline passed while closed. Past deadlines should appear due on reopening without replaying old system alerts.
+6. Edit, postpone, complete or delete a reminder. Verify no stale OS alert remains. Test the privacy menu: hidden strip/menu text, generic future alerts and removal of this app's delivered alerts.
+7. Install on Intel and Apple Silicon independently. On Macs without Touch Bar, use the window preview. Check Turkish/English date input, clock/time-zone changes and a long Turkish/emoji message.
+8. Export JSON, restart, import it and locate the recovery copy. Confirm notifications remain disabled after import. Exercise keyboard editing, native menus and VoiceOver labels.
 
-Ad-hoc signed releases require the documented first-open approval on some macOS versions. Tests should use fictional records and should not disable system-wide security settings.
+Follow the documented first-open steps if an ad-hoc signed release is blocked. Do not disable system-wide security settings. Quit an older Şerit before opening the update.

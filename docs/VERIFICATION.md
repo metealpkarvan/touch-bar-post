@@ -1,23 +1,23 @@
-# Verification · 2026-10-05
+# Verification · 1.1.0 · 2026-10-05
 
-The local verification host is an Intel Mac, macOS 15.8, Swift 6.1.2. The deployment target is macOS 11, not a claim of physical testing on every older OS.
+Local verification uses an Intel Mac running macOS 15.8 and Swift 6.1.2. macOS 11 is the deployment target, not a claim of testing every older operating system.
 
 ## Core behavior
 
-44 checks cover bounded records/imports, Turkish/emoji strings, invalid and duplicate identities, date validation, scene and due priority, deterministic ordering, completion/restore, snooze constraints, edit atomicity, notification eligibility/cap, search folding, Markdown, previous archives, corrupt-record protection and raw recovery copies. Test fixtures use fixed dates and temporary directories, without altering user records.
+**63 core checks** cover archive bounds, Turkish and emoji strings, one-field editing, unchanged legacy text, metadata preservation, optional persisted selection, invalid references, v1 decoding, all-scene visibility, stable due/pin/time ordering, atomic completion/removal, snooze constraints, notification eligibility/cap, Markdown, atomic storage, previous archives and raw recovery copies. Fixtures use fixed dates and temporary directories.
 
 ## Native AppKit acceptance
 
-19 baseline checks exercise the actual NSTouchBar item factory, three scene choices, pin rendering, previous/next NSButton actions, privacy masking, quick note creation, unsaved state detection, editing identity, due transition after a wall-clock advance, shared preview completion, scene mutation, notification request ID/content/trigger/sound, reopening a saved archive and corrupt-file protection through the real editor.
+**33 integration checks** exercise the actual compact editor and NSTouchBar factory: exactly three message types and two physical items, previous/next/copy/new/delete actions, no automatic rotation, legacy editing metadata, draft auto-save, selection persistence, announcement-only motion, reminder shortcuts, language and date locale, due preemption, completion, snooze and privacy. Request construction checks stable notification IDs, quiet one-shot triggers and generic private content.
 
-When `--screenshots output/verification` is supplied, two additional checks switch the real language button to English and back while preserving an unsaved draft. Total: **21 AppKit checks** in the CI/verification command. Native desktop and strip screenshots are rendered using AppKit, and the working layouts are visually inspected locally. They are rendered app/item views, not photographs of a physical Touch Bar.
+Storage checks invoke the real Save action against corrupt and unwritable temporary records. They verify unchanged original bytes, retained drafts, blocked navigation and a successful retry after storage repair. Oversized messages cannot partially change a saved record.
 
-The smoke process requests no notification authorization, schedules no system notifications and writes no clipboard data. It checks construction of local notification requests; actual delivery, Focus and sleep policy are separate device checks. A corrupt fixture is retained byte-for-byte even when a user-equivalent Save action is invoked.
+The same 33 checks run with or without screenshots. `--screenshots` renders the native Turkish/English window, reminder editor and real strip views. Those images are visually inspected locally; they are not photographs of a hardware Touch Bar. The test process has prohibited activation policy, creates no visible windows, requests no permission, schedules no notifications and uses an injected copy sink rather than the real clipboard. It never loads live user records.
 
 ## Distribution and architecture
 
-CI contains native Intel (`macos-15-intel`) and arm64 (`macos-latest`) jobs with explicit CPU assertions. Each runs the same rules, builds the app and runs AppKit acceptance. The packaging job waits for both, cross builds x86_64/arm64 for macOS 11, combines with lipo, verifies both slices and ad-hoc signing, and runs baseline AppKit checks on the packaged host slice. Actual run results are in [Actions](https://github.com/metealpkarvan/touch-bar-post/actions).
+CI asserts native CPU identity on Intel (`macos-15-intel`) and arm64 (`macos-latest`). Both run core checks, build the app and run AppKit acceptance. The Universal packaging job depends on both, cross-compiles x86_64/arm64 for macOS 11, verifies both slices and the signature, and runs all 33 checks on the packaged host slice. Actual results appear in [Actions](https://github.com/metealpkarvan/touch-bar-post/actions).
 
-The ZIP includes the application and English/Turkish guides. SHA256 checks accompany releases. Ad-hoc signing verifies bundle integrity; Developer ID signing and Apple notarization are not supplied.
+Release archives include the app, English/Turkish guides and source documentation. SHA256 accompanies each download. Ad-hoc signing checks bundle integrity; Developer ID signing and Apple notarization are not supplied.
 
-Physical Touch Bar width/tap behavior, actual notification delivery with the app quit, every supported Mac/OS, full VoiceOver behavior and all regional date formats remain manual checks in [HARDWARE-CHECKLIST.md](HARDWARE-CHECKLIST.md). Automated results do not replace those checks.
+Physical finger input, Control Strip ergonomics, real notification delivery with the app closed, every Mac/OS version, full VoiceOver behaviour and regional clock changes remain manual checks in [HARDWARE-CHECKLIST.md](HARDWARE-CHECKLIST.md). Automated results do not replace them.

@@ -1,58 +1,60 @@
 # Şerit · Touch Bar Post
 
-**Touch Bar’ına bir duyuru panosu, bir not köşesi ve küçük bir hatırlatma masası.** Swift ve AppKit ile geliştirilmiş, macOS 11+ için Intel/Apple Silicon Universal uygulama.
+**Touch Bar’ına not bırak, hatırlatma kur veya duyuru geçir.** Tek pencere, tek mesaj alanı, tek Kaydet düğmesi. Swift/AppKit ile geliştirilmiş, macOS 11+ için Intel ve Apple Silicon Universal uygulama.
 
 [Uygulamayı indir](https://github.com/metealpkarvan/touch-bar-post/releases/latest) · [English](README.md)
 
 ![Şerit’in gerçek macOS arayüzü](docs/desktop.png)
 
-## Neler yapabilirsin?
+## Üç basit iş
 
-- **Duyuru geçir:** “Bir fikrin peşindeyim, az sonra döneceğim” gibi bir mesajı renkli, kayan şeride bırak.
-- **Not bırak:** Kısa bir başlık ve bağlam yaz. Kartın ortasına dokunarak düzenle; **Kopyala** ile metni panoya al.
-- **Vakti gelince hatırla:** Tarih/saat seç. Hatırlatmanın vakti gelince bütün sahnelerde öne çıkar; **✓** ile tamamla, editörde **+5 dk** ile ertele.
-- **Sahneni değiştir:** Masam, Mola ve Ev kartlarını ayrı tut. Sahne başına sabitlenen kartlar diğer notlardan önce gelir.
-- **Perdeyi kapat:** Touch Bar, ekran şeridi ve menü çubuğundaki özel metinler gizlenir; yeni sistem bildirimlerinin içeriği genel bir hatırlatmaya dönüşür. Editör açık kalır.
-- **Akışı tut:** Kart dolaşımı ve kayan metin durur. Hareketi tümüyle kapatabilir; macOS’un Hareketi Azalt tercihi de dikkate alınır.
-- **Touch Bar’ın yoksa:** Aynı işlevleri ana penceredeki şeritte ve isteğe bağlı küçük “Masada şerit” penceresinde kullan.
+- **Not:** Mesajını yaz ve kaydet. Başka mesaj seçene veya bir hatırlatmanın vakti gelene kadar şeritte kalır. Ortasına dokunarak düzenle; Kopyala ile metni panoya al.
+- **Hatırlatıcı:** Mesajını yaz, tarih/saat seç veya +5, +15, +60 dakika düğmelerini kullan, kaydet. Vakti gelince şeritte öne çıkar. ✓ ile tamamla veya beş dakika ertele.
+- **Duyuru:** Mesajını yaz ve kaydet. Uzun duyurular kayar; notlar ve hatırlatmalar sabit kalır. macOS’un Hareketi Azalt tercihi dikkate alınır.
+
+Kayıtlı mesajların tek listede görünür. Birini seçerek düzenle veya şeritte göster; **Yeni** ile başka mesaj yaz, **Sil** ile seçtiğini kaldır. Ekrandaki şerit ile Touch Bar aynı işlevleri sunar: önceki, mesaj, eylem ve sonraki. **+** yeni bir not başlatır.
+
+Seçtiğin mesaj yeniden açılışta hatırlanır. Geçerli değişiklikler mesaj değiştirirken, pencereyi kapatırken veya uygulamadan çıkarken de kaydedilir. Kayıt başarısız olursa taslağın korunur ve gezinme durur. Alanı boşaltmak kayıtlı mesajı silmez; silmek için **Sil** düğmesini kullan.
 
 ![Duyuru şeridi](docs/touchbar-announcement.png)
-![Perde kapalı](docs/touchbar-curtain.png)
+![Hatırlatma şeridi](docs/touchbar-reminder.png)
 
-## Kur ve dene
+## Kur ve kullan
 
-1. Releases’ten `TouchBarPost-v1.0.0-universal.zip` dosyasını indir, aç ve **Şerit.app** uygulamasını Applications klasörüne taşı.
-2. Uygulamayı aç. **Veriler / hızlı başlangıç → Örnek kartlar ekle** ile kurgusal örnekleri dene veya kendi notunu yaz.
-3. **Tür** seç, başlık ve kısa bağlam gir. Hatırlatma seçtiysen tarih/saat belirt, **Şeride bırak** düğmesine bas.
-4. Touch Bar’da sahne düğmesini, önceki/sonraki oklarını, ortadaki kartı, eylem düğmesini ve **+** hızlı not düğmesini kullan.
-5. Başka uygulamalardayken de sistem uyarısı istiyorsan **Bildirimlere izin ver** düğmesine bas. İzin ilk açılışta kendiliğinden istenmez.
+1. `TouchBarPost-v1.1.0-universal.zip` dosyasını indir, aç ve **Şerit.app** uygulamasını Applications klasörüne taşı.
+2. Uygulamayı aç. **Not**, **Hatırlatıcı** veya **Duyuru** seç, kısa mesajını yaz ve **Kaydet** düğmesine bas. Hatırlatıcı için tarih/saat de belirt.
+3. Sistem bildirimlerini istersen menüden aç. Yedekleme ve Türkçe/İngilizce seçimi de yerel macOS menülerindedir.
 
-Paket bütünlüğü için ad-hoc imzalıdır; Apple Developer ID imzası ve noter onayı yoktur. Gatekeeper ilk açılışı engellerse uygulamayı açmayı denedikten sonra **Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç** yolunu kullan. macOS sürümüne göre adlar değişebilir. Güvenlik ayarlarını tüm sistem için kapatman gerekmez. Kaynak kodu ve SHA256 checksum’u inceleyebilirsin.
+Yeni sürümü açmadan önce eski Şerit’i kapat. Sürüm 1 kayıtları uyumludur: eski mesajlar, başlıkları, açıklamaları ve bilgileri korunur. Önceki bütün sahnelerdeki mesajlar tek listede görünür; eski sabitlenmiş mesajların önceliği korunur. Sade arayüz mesajları otomatik dolaştırmaz.
 
-## Touch Bar ve hatırlatma davranışı
+Paket bütünlüğü için ad-hoc imzalıdır; Apple Developer ID imzası ve noter onayı yoktur. Gatekeeper ilk açılışı engellerse uygulamayı açmayı denedikten sonra **Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç** yolunu kullan. macOS sürümüne göre adlar değişebilir. Güvenlik ayarlarını tüm sistem için kapatman gerekmez. Kaynak kodunu ve SHA256 checksum’unu inceleyebilirsin.
 
-Resmi AppKit Touch Bar’ı, uygulama **öndeyken** gösterir. Şerit başka uygulamaların Touch Bar’ını ele geçirmez. Pencereyi kapatmak uygulamayı kapatmaz: menü çubuğundaki **✎** simgesi üzerinden notlara ve hatırlatmalara dönersin. **⌘Q / Çık** uygulamayı kapatır.
+## Touch Bar ve hatırlatmalar
 
-Sistem bildirimleri izin verilmişse gelecekteki en yakın **60 aktif hatırlatma** için planlanır ve uygulama kapalıyken de macOS tarafından yönetilir. Sonraki kayıtlar uygulama tekrar çalışırken planlamaya alınır. Bildirimlerin gösterimi macOS izinleri, odak modu, uyku ve sistem davranışına bağlıdır. Geçmiş tarihli kayıtlar yeniden sistem bildirimi üretmez; uygulamada “Vakti geldi” olarak kalır. Hatırlatmalar **tek seferliktir**; takvim tekrarları yoktur. Tarih/saat yerel saat diliminde girilir, kaydedilen tarih bir zaman anıdır.
+Resmi AppKit Touch Bar’ı, uygulama **öndeyken** gösterir. Şerit başka uygulamaların Touch Bar’ını değiştirmez. Pencereyi kapatmak uygulamayı kapatmaz; menü çubuğundaki simgeden geri açabilirsin. **⌘Q / Çık** uygulamayı kapatır. Fiziksel Touch Bar destekleyen bir MacBook Pro gerekir; ekrandaki şerit, Touch Bar’sız Intel ve Apple Silicon Mac’lerde de çalışır.
 
-Perde mevcut Şerit bildirimlerini Bildirim Merkezi’nden kaldırır ve gelecektekileri genel içerikle yeniden planlar. Başlık/bağlam alanlarını veya panoya daha önce kopyaladığın metni gizlemez. Kartı elle seçmek akışı tutar; devam etmek için **Akışı sürdür** düğmesini kullan. Otomatik dolaşım, vakti gelen bir hatırlatma varken ve uygulama arka plandayken durur.
+Sistem bildirimleri isteğe bağlıdır. İzin yalnızca menüden açmayı seçtiğinde istenir. Açıkken gelecekteki en yakın **60 aktif hatırlatma** tek seferlik yerel bildirim olarak planlanır; Şerit kapalı olsa da bu istekleri macOS yönetir. Sonraki kayıtlar uygulama yeniden çalışırken planlamaya alınır. Gösterim macOS izinleri, odak modu, uyku ve sistem davranışına bağlıdır. Geçmiş tarihli kayıtlar yeniden sistem uyarısı üretmez; uygulamada vakti gelmiş olarak kalır. Hatırlatmalar otomatik tekrarlanmaz. Yerel tarih/saat bir zaman anı olarak kaydedilir.
+
+**Şerit → Touch Bar metnini gizle**, şeritteki ve menüdeki mesaj başlıklarını gizler; uygulamanın gösterilmiş bildirimlerini kaldırır, yeni bildirimlerde genel içerik kullanır. Editör görünür kalır. Eski kaydındaki gizlilik tercihi korunur; mesajları tekrar göstermek için menüdeki işareti kaldır.
 
 ## Kayıtların ve yedeklerin
 
-Kayıtlar `~/Library/Application Support/TouchBarPost/archive.json` içinde tutulur. Hesap, sunucu, analiz, AI API’si veya ağ üzerinden eşitleme yoktur. Metinler şifreli değildir. En fazla 200 kart; başlık 80, bağlam 400 karakter; JSON yedek 1 MB.
+Mesajlar `~/Library/Application Support/TouchBarPost/archive.json` içinde tutulur; şifreli değildir. Hesap, sunucu, analiz, AI API’si veya arka planda ağ çağrısı yoktur. En fazla 200 mesaj; JSON yedek sınırı 1 MB.
 
-**Veriler** menüsünden JSON yedeği, Markdown çıktısı ve kayıt klasörüne ulaşabilirsin. Yedek yüklemeden ve sıfırlamadan önce orijinalin ayrı bir kurtarma kopyası saklanır. Normal kayıtta bir önceki geçerli sürüm `archive.previous.json` olur. Bozuk bir arşiv otomatik olarak boş veriyle değiştirilmez: yazma engellenir, orijinali dışa aktarabilir veya geçerli bir yedek yükleyebilirsin. İçe aktarım sonrası bildirimleri yeniden açman gerekir. Kurtarma kopyaları otomatik silinmez.
+Veriler menüsünden JSON yedeğine, yedek yüklemeye, önceki kaydı kurtarmaya, Markdown çıktısına ve kayıt klasörüne ulaşabilirsin. Normal kayıt bir önceki geçerli sürümü `archive.previous.json` olarak saklar. Yedek yüklemeden veya önceki kaydı kurtarmadan önce orijinalin ayrı kurtarma kopyası alınır. Bozuk arşive yazılmaz; orijinalini olduğu gibi dışa aktarabilirsin. Yedek veya önceki kayıt yüklendikten sonra bildirimleri yeniden açman gerekir. Kurtarma kopyaları sen silene kadar tutulur.
 
 ## Geliştirme
 
 ```bash
-swift run -j 2 PostRulesTests
-swift build -j 2 --product TouchBarPost
+swift run --disable-sandbox -j 2 PostRulesTests
+swift build --disable-sandbox -j 2 --product TouchBarPost
 .build/debug/TouchBarPost --smoke-test --screenshots output/verification
-bash scripts/package.sh 1.0.0
+bash scripts/package.sh 1.1.0
 ```
 
-Xcode Command Line Tools ve Swift 5.7+ gerekir; paketleme UTF-8 dosya adlarını ve çalıştırma izinlerini korumak için Python 3'ün standart ZIP kütüphanesini de kullanır. Uygulamayı kullananların Swift veya Python kurması gerekmez. Sistem bildirimleri için paketlenmiş `.app` çalıştır. Harici paket bağımlılığı yoktur. CI native Intel/arm64 kural ve AppKit kontrollerini, ardından Universal paketi doğrular. Fiziksel Touch Bar parmak davranışı ve gerçek bildirim teslimi için [cihaz kontrol listesi](docs/HARDWARE-CHECKLIST.md) bulunur; bunlar otomatik testle yapılmış gibi sunulmaz.
+Xcode Command Line Tools ve Swift 5.7+ gerekir. Paketleme, UTF-8 dosya adlarını ve çalıştırma izinlerini korumak için Python 3’ün standart ZIP kütüphanesini kullanır; uygulamayı kullananların Swift veya Python kurması gerekmez. Sistem bildirimleri için paketlenmiş `.app` çalıştır. Harici paket bağımlılığı yoktur.
+
+CI native Intel ve arm64 kural/AppKit kontrollerini, ardından Universal paketi doğrular. Testler kurgusal mesajlar ve geçici dosyalar kullanır; panoya yazmaz, bildirim izni istemez. Fiziksel Touch Bar ve gerçek bildirim teslimi için [cihaz kontrol listesi](docs/HARDWARE-CHECKLIST.md) bulunur.
 
 [Tasarım](docs/DESIGN.md) · [Mimari](docs/ARCHITECTURE.md) · [Doğrulama](docs/VERIFICATION.md) · [Yol haritası](docs/ROADMAP.md)
 

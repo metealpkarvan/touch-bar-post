@@ -13,7 +13,7 @@ final class StampButton: NSButton {
         ink.withAlphaComponent(0.16).setFill()
         NSBezierPath(roundedRect: bounds, xRadius: 7, yRadius: 7).fill()
         let text: String
-        if concealed { text = tr(language,"Perde kapalı · Metnin sende kalsın","Curtain closed · Keep your text private") }
+        if concealed { text = tr(language,"Metin gizli · Şerit menüsünden aç","Text hidden · Show it from the Şerit menu") }
         else if let card = card { text = Archive.oneLine(card.title + (card.body.isEmpty ? "" : "   ·   " + card.body)) }
         else { text = tr(language,"Bir not bırak. Şeridin hazır.","Leave a note. Your strip is ready.") }
         let size: CGFloat = bounds.height > 38 ? 16 : 12
@@ -66,7 +66,7 @@ final class RailView: NSView {
     func update(card: Card?, privacy: Bool, motion: Bool, language: Language) {
         if stamp.card != card { stamp.card = card }
         stamp.concealed = privacy; stamp.language = language
-        stamp.animated = motion && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        stamp.animated = card?.kind == .announcement && motion && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         stamp.needsDisplay = true
         act.title = card?.kind == .reminder ? "✓" : tr(language,"Kopyala","Copy")
         act.isEnabled = card != nil && !privacy
