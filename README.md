@@ -48,7 +48,7 @@ swift build -j 2 --product TouchBarPost
 bash scripts/package.sh 1.0.0
 ```
 
-Requires Xcode Command Line Tools and Swift 5.7+. Notifications need the packaged `.app`. No external packages. CI runs core and actual AppKit item/action checks on native Intel/arm64 hosts before checking Universal packaging. Integration checks use fictional records, temporary files, no clipboard writes and no notification permission request. [Verification](docs/VERIFICATION.md) separates those checks from physical-device and notification-delivery tests.
+Requires Xcode Command Line Tools and Swift 5.7+; packaging also uses Python 3's standard ZIP library to preserve UTF-8 names and executable permissions. End users need neither toolchain nor Python. Notifications need the packaged `.app`. No external packages. CI runs core and actual AppKit item/action checks on native Intel/arm64 hosts before checking Universal packaging. Integration checks use fictional records, temporary files, no clipboard writes and no notification permission request. [Verification](docs/VERIFICATION.md) separates those checks from physical-device and notification-delivery tests.
 
 [Design](docs/DESIGN.md) · [Architecture](docs/ARCHITECTURE.md) · [Hardware checklist](docs/HARDWARE-CHECKLIST.md) · [Roadmap](docs/ROADMAP.md)
 

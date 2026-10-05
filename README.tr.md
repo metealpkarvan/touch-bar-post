@@ -52,7 +52,7 @@ swift build -j 2 --product TouchBarPost
 bash scripts/package.sh 1.0.0
 ```
 
-Xcode Command Line Tools ve Swift 5.7+ gerekir. Sistem bildirimleri için paketlenmiş `.app` çalıştır. Harici paket bağımlılığı yoktur. CI native Intel/arm64 kural ve AppKit kontrollerini, ardından Universal paketi doğrular. Fiziksel Touch Bar parmak davranışı ve gerçek bildirim teslimi için [cihaz kontrol listesi](docs/HARDWARE-CHECKLIST.md) bulunur; bunlar otomatik testle yapılmış gibi sunulmaz.
+Xcode Command Line Tools ve Swift 5.7+ gerekir; paketleme UTF-8 dosya adlarını ve çalıştırma izinlerini korumak için Python 3'ün standart ZIP kütüphanesini de kullanır. Uygulamayı kullananların Swift veya Python kurması gerekmez. Sistem bildirimleri için paketlenmiş `.app` çalıştır. Harici paket bağımlılığı yoktur. CI native Intel/arm64 kural ve AppKit kontrollerini, ardından Universal paketi doğrular. Fiziksel Touch Bar parmak davranışı ve gerçek bildirim teslimi için [cihaz kontrol listesi](docs/HARDWARE-CHECKLIST.md) bulunur; bunlar otomatik testle yapılmış gibi sunulmaz.
 
 [Tasarım](docs/DESIGN.md) · [Mimari](docs/ARCHITECTURE.md) · [Doğrulama](docs/VERIFICATION.md) · [Yol haritası](docs/ROADMAP.md)
 

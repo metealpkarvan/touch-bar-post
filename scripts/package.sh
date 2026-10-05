@@ -32,7 +32,7 @@ cp README.md README.tr.md LICENSE CHANGELOG.md "$POST_STAGING/"
 cp -R docs "$POST_STAGING/docs"
 POST_ZIP="TouchBarPost-v$POST_VERSION-universal.zip"
 rm -f "dist/$POST_ZIP"
-ditto -c -k --sequesterRsrc "$POST_STAGING" "dist/$POST_ZIP"
+python3 scripts/archive.py "$POST_STAGING" "dist/$POST_ZIP"
 (cd dist && shasum -a 256 "$POST_ZIP" > SHA256SUMS.txt)
 echo "Packaged: $POST_PROJECT/dist/$POST_ZIP"
 lipo -archs "$POST_APP/Contents/MacOS/TouchBarPost"
