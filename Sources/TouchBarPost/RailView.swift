@@ -39,6 +39,8 @@ final class StampButton: NSButton {
 final class RailView: NSView {
     let stamp = StampButton()
     let previous = NSButton(), next = NSButton(), act = NSButton()
+    private(set) var widthPreference: NSLayoutConstraint?
+    private(set) var widthLimit: NSLayoutConstraint?
     var onPrevious: (() -> Void)?, onNext: (() -> Void)?, onOpen: (() -> Void)?, onAction: (() -> Void)?
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -53,7 +55,27 @@ final class RailView: NSView {
         layoutButtons()
     }
     required init?(coder: NSCoder) { fatalError("Programmatic view") }
+    /// Keep this custom item within the user's chosen footprint. A preferred
+    /// width can shrink when AppKit has less space; it cannot stretch wider.
+    func setTouchBarWidth(_ requested: Int) {
+        let width = CGFloat(max(Settings.minimumTouchBarWidth, min(Settings.maximumTouchBarWidth, requested)))
+        if widthPreference?.constant == width && widthLimit?.constant == width { return }
+        if widthPreference == nil {
+            translatesAutoresizingMaskIntoConstraints = false
+            let preference = widthAnchor.constraint(equalToConstant: width)
+            preference.priority = .defaultHigh
+            let limit = widthAnchor.constraint(lessThanOrEqualToConstant: width)
+            widthPreference = preference; widthLimit = limit
+            NSLayoutConstraint.activate([preference, limit,
+                widthAnchor.constraint(greaterThanOrEqualToConstant: CGFloat(Settings.minimumTouchBarWidth)),
+                heightAnchor.constraint(equalToConstant: 30)])
+        }
+        widthPreference?.constant = width; widthLimit?.constant = width
+        setFrameSize(NSSize(width: width, height: 30)); needsLayout = true
+        layoutSubtreeIfNeeded()
+    }
     override func draw(_ dirtyRect: NSRect) { NSColor.black.setFill(); NSBezierPath(roundedRect:bounds,xRadius:8,yRadius:8).fill() }
+    override func setFrameSize(_ newSize: NSSize) { super.setFrameSize(newSize); layoutButtons() }
     override func layout() { super.layout(); layoutButtons() }
     func layoutButtons() {
         let side: CGFloat = bounds.height > 38 ? 34 : 27

@@ -26,7 +26,7 @@ final class PostDelegate:NSObject,NSApplicationDelegate {
         let data=menu("Veriler / Data")
         for (name,action) in [("JSON yedekle / Export JSON",#selector(DeskController.exportAction)),("Yedek yükle / Restore JSON",#selector(DeskController.importAction)),("Önceki kaydı kurtar / Recover previous",#selector(DeskController.recoverAction)),("Markdown çıktısı / Export Markdown",#selector(DeskController.markdownAction)),("Kayıt klasörü / Data folder",#selector(DeskController.folderAction))] { add(name,action,"",data,desk) }
     }
-    @objc private func aboutAction() { NSApp.orderFrontStandardAboutPanel(options:[.applicationName:"Şerit",.applicationVersion:"1.1.0",.credits:NSAttributedString(string:"Not. Hatırlatıcı. Duyuru.\nNote. Reminder. Announcement.\nMete Alp Karvan · MIT · 2026")]) }
+    @objc private func aboutAction() { NSApp.orderFrontStandardAboutPanel(options:[.applicationName:"Şerit",.applicationVersion:"1.2.0",.credits:NSAttributedString(string:"Not. Hatırlatıcı. Duyuru.\nNote. Reminder. Announcement.\nMete Alp Karvan · MIT · 2026")]) }
     @objc private func sourceAction() { NSWorkspace.shared.open(URL(string:"https://github.com/metealpkarvan/touch-bar-post")!) }
 }
 func png(_ view:NSView,_ url:URL)throws {
@@ -97,14 +97,60 @@ func smoke(_ screenshots:URL?)throws {
     try check(req.identifier=="serit."+newReminder.id.uuidString && (req.trigger as? UNCalendarNotificationTrigger)?.repeats == false && req.content.sound==nil,"Reminders retain quiet one-shot local notification requests")
     var hidden=desk.archive.settings; hidden.privacy=true; let generic=notificationRequest(newReminder,settings:hidden)!
     try check(!generic.content.title.contains(newReminder.title) && !generic.content.body.contains(newReminder.body),"Privacy remains effective for scheduled notification text")
+    let beforeNotes=desk.archive.cards
+    var noteIDs:[UUID]=[]
+    for text in ["Alınacaklar\nEkmek, süt, çay", "Bugün\nİlk taslağı bitir", "Hafta sonu\nKitabı kütüphaneye götür"] {
+        desk.newButton.performClick(nil); desk.messageField.string=text
+        desk.textDidChange(Notification(name:NSText.didChangeNotification,object:desk.messageField))
+        guard desk.editingID == nil,desk.saveButton.title == "Yeni kaydet" else { throw PostError.invalid("New-note editor state missing") }
+        desk.saveButton.performClick(nil)
+        guard let id=desk.archive.settings.selectedCardID,desk.archive.cards.first(where:{$0.id==id})?.messageText == text else { throw PostError.invalid("New note was not saved") }
+        noteIDs.append(id)
+    }
+    try check(Set(noteIDs).count==3 && desk.archive.cards.count==beforeNotes.count+3 && beforeNotes.allSatisfy { old in desk.archive.cards.contains(old) },"New and Save new create three independent notes without replacing existing messages")
+    func findRow(_ view:NSView,_ id:UUID)->MessageRow? {
+        if let row=view as? MessageRow,row.card.id==id { return row }
+        for child in view.subviews { if let row=findRow(child,id) { return row } }; return nil
+    }
+    guard let row=findRow(desk.window!.contentView!,noteIDs[1]) else { throw PostError.invalid("Saved note missing from visible list") }
+    row.performClick(nil); let originalMiddle=desk.archive.cards.first{$0.id==noteIDs[1]}!
+    let untouched=desk.archive.cards.filter{$0.id != noteIDs[1]}
+    desk.messageField.string="Bugün\nTaslağı gözden geçir"; desk.textDidChange(Notification(name:NSText.didChangeNotification,object:desk.messageField)); desk.saveButton.performClick(nil)
+    let updatedMiddle=desk.archive.cards.first{$0.id==noteIDs[1]}!
+    try check(desk.saveButton.title=="Güncelle" && updatedMiddle.messageText=="Bugün\nTaslağı gözden geçir" && updatedMiddle.id==originalMiddle.id && updatedMiddle.createdAt==originalMiddle.createdAt && untouched.allSatisfy{desk.archive.cards.contains($0)},"Actual list selection and Update edit only the chosen saved note")
+    try check(desk.widthSlider.minValue==240 && desk.widthSlider.maxValue==560 && desk.widthSlider.integerValue==400 && physical.widthPreference?.constant==400 && physical.widthLimit?.constant==400 && physical.widthPreference?.priority == .defaultHigh,"Physical Touch Bar factory has a persistent width preference and a required cap")
+    let beforeWidth=desk.archive.cards
+    desk.messageField.string="Genişliği değiştirirken korunan taslak"
+    desk.widthSlider.integerValue=240; desk.widthSlider.sendAction(desk.widthSlider.action!,to:desk.widthSlider.target)
+    try check(desk.archive.settings.touchBarWidth==240 && desk.preview.bounds.width==240 && physical.bounds.width==240 && physical.widthLimit?.constant==240 && (try store.load()).settings.touchBarWidth==240,"Actual slider narrows both the saved Touch Bar item and desktop preview")
+    try check(desk.archive.cards==beforeWidth && desk.messageField.string=="Genişliği değiştirirken korunan taslak" && desk.hasDraftChanges,"Changing width preserves every saved note and the unsaved editing buffer")
+    desk.widthSlider.integerValue=560; desk.widthSlider.sendAction(desk.widthSlider.action!,to:desk.widthSlider.target)
+    try check(desk.preview.bounds.width==560 && physical.bounds.width==560 && physical.act.frame.maxX<=560 && physical.stamp.frame.width>0,"Wide setting resizes the real controls while retaining their usable layout")
+    desk.widthSlider.integerValue=431; desk.refresh(rebuild:false)
+    try check(desk.widthSlider.integerValue==431 && desk.archive.settings.touchBarWidth==560,"Timer refresh does not reset a width slider currently being adjusted")
+    desk.widthSlider.sendAction(desk.widthSlider.action!,to:desk.widthSlider.target)
+    let afterWidth=DeskController(store:ArchiveStore(directory:temp),timers:false,statusItem:false,now:desk.now)
+    let reopenedRail=(afterWidth.window!.touchBar!.item(forIdentifier:.postRail) as? NSCustomTouchBarItem)?.view as? RailView
+    try check(afterWidth.archive.cards==beforeWidth && afterWidth.displayed?.id==noteIDs[1] && afterWidth.widthSlider.integerValue==431 && afterWidth.preview.bounds.width==431 && reopenedRail?.widthLimit?.constant==431,"Multiple saved notes, selected note and exact width survive restarting the controller")
+    desk.messageField.string=updatedMiddle.messageText
+    desk.selectCard(noteIDs[2]); desk.deleteButton.performClick(nil)
+    try check(!desk.archive.cards.contains(where:{$0.id==noteIDs[2]}) && desk.archive.cards.contains(updatedMiddle) && desk.archive.cards.contains(where:{$0.id==noteIDs[0]}) && beforeNotes.allSatisfy{desk.archive.cards.contains($0)},"Deleting one saved note leaves the other notes and older messages intact")
+    let host=NSView(frame:NSRect(x:0,y:0,width:300,height:30)),fitted=RailView(frame:NSRect(x:0,y:0,width:560,height:30))
+    fitted.setTouchBarWidth(560); host.addSubview(fitted)
+    NSLayoutConstraint.activate([host.widthAnchor.constraint(equalToConstant:300),host.heightAnchor.constraint(equalToConstant:30),fitted.leadingAnchor.constraint(equalTo:host.leadingAnchor),fitted.trailingAnchor.constraint(equalTo:host.trailingAnchor),fitted.topAnchor.constraint(equalTo:host.topAnchor),fitted.bottomAnchor.constraint(equalTo:host.bottomAnchor)])
+    host.layoutSubtreeIfNeeded(); fitted.setTouchBarWidth(560)
+    try check(abs(fitted.bounds.width-300)<0.1 && fitted.widthLimit?.constant==560 && fitted.act.frame.maxX<=300 && fitted.stamp.frame.width>0,"AppKit can compress the preferred strip to available space without stretching beyond its cap or undoing compression on refresh")
+    desk.widthSlider.integerValue=400; desk.widthSlider.sendAction(desk.widthSlider.action!,to:desk.widthSlider.target)
     if let folder=screenshots {
         try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
         desk.selectCard(note.id); try png(desk.window!.contentView!,folder.appendingPathComponent("desktop.png")); desk.languageAction(); try png(desk.window!.contentView!,folder.appendingPathComponent("desktop-en.png")); desk.languageAction()
         desk.selectCard(newReminder.id); try png(desk.window!.contentView!,folder.appendingPathComponent("desktop-reminder.png"))
-        physical.frame=NSRect(x:0,y:0,width:600,height:30); physical.layoutButtons(); physical.update(card:banner,privacy:false,motion:true,language:.tr); physical.animate(delta:3); try png(physical,folder.appendingPathComponent("touchbar-announcement.png"))
+        physical.frame=NSRect(x:0,y:0,width:desk.archive.settings.touchBarWidth,height:30); physical.layoutButtons(); physical.update(card:banner,privacy:false,motion:true,language:.tr); physical.animate(delta:3); try png(physical,folder.appendingPathComponent("touchbar-announcement.png"))
         physical.update(card:reminder,privacy:false,motion:false,language:.tr); try png(physical,folder.appendingPathComponent("touchbar-reminder.png"))
         physical.update(card:note,privacy:false,motion:false,language:.tr); try png(physical,folder.appendingPathComponent("touchbar-note.png"))
         physical.update(card:note,privacy:true,motion:false,language:.tr); try png(physical,folder.appendingPathComponent("touchbar-curtain.png"))
+        desk.selectCard(noteIDs[0]); desk.widthSlider.integerValue=240; desk.widthSlider.sendAction(desk.widthSlider.action!,to:desk.widthSlider.target); try png(physical,folder.appendingPathComponent("touchbar-compact.png"))
+        desk.widthSlider.integerValue=560; desk.widthSlider.sendAction(desk.widthSlider.action!,to:desk.widthSlider.target); try png(physical,folder.appendingPathComponent("touchbar-wide.png")); try png(desk.window!.contentView!,folder.appendingPathComponent("desktop-wide.png"))
     }
     let raw=Data("unreadable-original-archive".utf8); try raw.write(to:store.file)
     let blocked=DeskController(store:store,timers:false,statusItem:false,now:{date}); blocked.messageField.string="Korunması gereken taslak"; blocked.saveAction()
@@ -112,6 +158,8 @@ func smoke(_ screenshots:URL?)throws {
     let denied=temp.appendingPathComponent("blocked-path"); try Data("file".utf8).write(to:denied)
     let failed=DeskController(store:ArchiveStore(directory:denied),timers:false,statusItem:false,now:{date}); failed.messageField.string="Kaybolmayan taslak"; failed.saveAction()
     try check(failed.archive.cards.isEmpty && failed.messageField.string=="Kaybolmayan taslak" && failed.hasDraftChanges,"Failed save keeps the draft and archive untouched")
+    failed.widthSlider.integerValue=560; failed.widthSlider.sendAction(failed.widthSlider.action!,to:failed.widthSlider.target)
+    try check(failed.archive.settings.touchBarWidth==400 && failed.widthSlider.integerValue==400 && failed.preview.bounds.width==400 && failed.messageField.string=="Kaybolmayan taslak","Failed width save restores the prior slider and preview width without discarding the draft")
     try check(!failed.mayLeaveDraft(),"Unwritable storage prevents losing an unsaved draft during navigation")
     try FileManager.default.removeItem(at:denied); failed.saveAction()
     try check(failed.archive.cards.count==1 && !failed.hasDraftChanges && (try ArchiveStore(directory:denied).load())==failed.archive,"Retry saves the same draft once after storage repair")

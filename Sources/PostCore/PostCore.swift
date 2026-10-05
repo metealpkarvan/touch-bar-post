@@ -6,13 +6,35 @@ public enum Ink: String, Codable, CaseIterable { case amber, aqua, rose, lime }
 public enum Language: String, Codable, CaseIterable { case tr, en }
 
 public struct Settings: Codable, Equatable {
+    public static let minimumTouchBarWidth = 240
+    public static let maximumTouchBarWidth = 560
+    public static let defaultTouchBarWidth = 400
     public var scene: Scene = .desk
     public var privacy = false
     public var motion = true
     public var notifications = false
     public var language: Language = .tr
     public var selectedCardID: UUID? = nil
+    public var touchBarWidth: Int = Settings.defaultTouchBarWidth
     public init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case scene, privacy, motion, notifications, language, selectedCardID, touchBarWidth
+    }
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        scene = try values.decode(Scene.self, forKey: .scene)
+        privacy = try values.decode(Bool.self, forKey: .privacy)
+        motion = try values.decode(Bool.self, forKey: .motion)
+        notifications = try values.decode(Bool.self, forKey: .notifications)
+        language = try values.decode(Language.self, forKey: .language)
+        selectedCardID = try values.decodeIfPresent(UUID.self, forKey: .selectedCardID)
+        // Older v1 archives have no width key. A present but invalid value must
+        // fail decoding instead of silently replacing the saved preference.
+        touchBarWidth = values.contains(.touchBarWidth)
+            ? try values.decode(Int.self, forKey: .touchBarWidth)
+            : Self.defaultTouchBarWidth
+    }
 }
 
 public struct Card: Codable, Equatable, Identifiable {
@@ -71,6 +93,9 @@ public struct Archive: Codable, Equatable {
     public init() {}
     public func validated() throws -> Archive {
         guard version == 1 else { throw PostError.invalid("Unsupported archive version / Desteklenmeyen yedek sürümü.") }
+        guard (Settings.minimumTouchBarWidth...Settings.maximumTouchBarWidth).contains(settings.touchBarWidth) else {
+            throw PostError.invalid("Touch Bar width: 240–560 pt / Touch Bar genişliği: 240–560 pt.")
+        }
         guard cards.count <= 200 else { throw PostError.invalid("Maximum 200 cards / En fazla 200 kart.") }
         guard Set(cards.map(\.id)).count == cards.count else { throw PostError.invalid("Duplicate card IDs / Tekrarlanan kart kimlikleri.") }
         if let selected = settings.selectedCardID {

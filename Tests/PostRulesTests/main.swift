@@ -8,8 +8,46 @@ func expect(_ value:@autoclosure () throws -> Bool,_ message:String = "Unexpecte
 func rejects(_ body:() throws -> Void) throws { var rejected = false; do { try body() } catch { rejected = true }; try expect(rejected,"Expected rejection") }
 func card(_ kind:CardKind = .note,_ title:String = "Not",scene:Scene = .desk,pinned:Bool = false,due:Double? = nil) -> Card { Card(kind:kind,scene:scene,title:title,pinned:pinned,now:date,dueAt:due.map { date.addingTimeInterval($0) }) }
 func archive(_ cards:[Card]) -> Archive { var value = Archive(); value.cards = cards; return value }
+func settingsJSON(_ changes:[String:Any] = [:], removing:[String] = []) throws -> Data {
+    var root = try JSONSerialization.jsonObject(with:Archive().encoded()) as! [String:Any]
+    var settings = root["settings"] as! [String:Any]
+    for key in removing { settings.removeValue(forKey:key) }
+    for (key,value) in changes { settings[key] = value }
+    root["settings"] = settings
+    return try JSONSerialization.data(withJSONObject:root)
+}
 
-test("Empty archive and privacy defaults") { let a = try Archive().validated(); try expect(a.cards.isEmpty && !a.settings.notifications && !a.settings.privacy && a.settings.scene == .desk) }
+test("Empty archive and privacy defaults") { let a = try Archive().validated(); try expect(a.cards.isEmpty && !a.settings.notifications && !a.settings.privacy && a.settings.scene == .desk && a.settings.touchBarWidth == Settings.defaultTouchBarWidth) }
+test("Touch Bar width accepts both inclusive boundaries") {
+    for width in [Settings.minimumTouchBarWidth,Settings.defaultTouchBarWidth,Settings.maximumTouchBarWidth] {
+        var a = Archive(); a.settings.touchBarWidth = width
+        try expect(try Archive.decode(a.encoded()) == a)
+    }
+}
+test("Touch Bar width rejects out-of-range values in memory and JSON") {
+    for width in [Settings.minimumTouchBarWidth - 1,Settings.maximumTouchBarWidth + 1,0,Int.max] {
+        var a = Archive(); a.settings.touchBarWidth = width
+        try rejects { _ = try a.validated() }
+        try rejects { _ = try a.encoded() }
+        try rejects { _ = try Archive.decode(settingsJSON(["touchBarWidth":width])) }
+    }
+}
+test("Present width rejects null and invalid JSON types instead of migrating") {
+    let invalid:[Any] = [NSNull(),true,"400",400.5,[],["width":400]]
+    for value in invalid { try rejects { _ = try Archive.decode(settingsJSON(["touchBarWidth":value])) } }
+}
+test("Legacy migration defaults only missing width without relaxing required fields") {
+    let a = try Archive.decode(settingsJSON(removing:["touchBarWidth","selectedCardID"]))
+    try expect(a.settings.touchBarWidth == 400 && a.settings.selectedCardID == nil)
+    for key in ["scene","privacy","motion","notifications","language"] {
+        try rejects { _ = try Archive.decode(settingsJSON(removing:["touchBarWidth",key])) }
+        try rejects { _ = try Archive.decode(settingsJSON([key:NSNull()],removing:["touchBarWidth"])) }
+    }
+    // The previously optional selection retains its v1 nil representation.
+    let nullSelection = try Archive.decode(settingsJSON(["selectedCardID":NSNull()],removing:["touchBarWidth"]))
+    try expect(nullSelection.settings.selectedCardID == nil && nullSelection.settings.touchBarWidth == 400)
+    try rejects { _ = try Archive.decode(settingsJSON(["selectedCardID":17],removing:["touchBarWidth"])) }
+}
 test("Whitespace-only title rejected") { try rejects { _ = try archive([card(.note," \n ")]).validated() } }
 test("80 grapheme title boundary") { _ = try archive([card(.note,String(repeating:"ş",count:80))]).validated(); try rejects { _ = try archive([card(.note,String(repeating:"ş",count:81))]).validated() } }
 test("400 grapheme body boundary") { var c = card(); c.body = String(repeating:"🧑🏽‍💻",count:400); _ = try archive([c]).validated(); c.body += "a"; try rejects { _ = try archive([c]).validated() } }
@@ -144,11 +182,39 @@ test("Version one fixture preserves hidden metadata while simple list reveals ca
     ]}
     """.utf8)
     let a = try Archive.decode(fixture)
-    try expect(a.version == 1 && a.settings.scene == .pause && a.settings.privacy && !a.settings.motion && a.settings.notifications && a.settings.language == .en && a.settings.selectedCardID == nil)
+    try expect(a.version == 1 && a.settings.scene == .pause && a.settings.privacy && !a.settings.motion && a.settings.notifications && a.settings.language == .en && a.settings.selectedCardID == nil && a.settings.touchBarWidth == 400)
     try expect(a.cards[0].scene == .home && a.cards[0].ink == .rose && a.cards[0].pinned && a.cards[0].body == "Line one\nLine two")
     try expect(a.cards[2].doneAt != nil && a.queue(at:date).isEmpty)
     try expect(a.simpleQueue(at:date).map(\.title) == ["Old home note","Old deadline"])
     try expect(try Archive.decode(a.encoded()) == a,"Simplification changed the existing archive format")
+}
+test("Version 1.1 selected-note fixture migrates width without changing saved notes") {
+    let fixture = Data("""
+    {"version":1,"settings":{"scene":"home","privacy":false,"motion":true,"notifications":false,"language":"tr","selectedCardID":"00000000-0000-0000-0000-000000000002"},"cards":[
+      {"id":"00000000-0000-0000-0000-000000000001","kind":"note","scene":"pause","ink":"rose","title":"Birinci not","body":"Özgün metin","pinned":true,"createdAt":"2026-10-05T05:00:00Z","updatedAt":"2026-10-05T05:01:00Z"},
+      {"id":"00000000-0000-0000-0000-000000000002","kind":"note","scene":"home","ink":"lime","title":"İkinci not","body":"Bağımsız metin","pinned":false,"createdAt":"2026-10-05T06:00:00Z","updatedAt":"2026-10-05T06:01:00Z"}
+    ]}
+    """.utf8)
+    let a = try Archive.decode(fixture)
+    try expect(a.version == 1 && a.settings.touchBarWidth == 400 && a.settings.selectedCardID == a.cards[1].id)
+    try expect(a.cards.count == 2 && a.cards[0].ink == .rose && a.cards[0].pinned && a.cards[0].scene == .pause)
+    try expect(a.cards[1].ink == .lime && a.cards[1].body == "Bağımsız metin" && a.cards[1].createdAt != a.cards[0].createdAt)
+    try expect(try Archive.decode(a.encoded()) == a)
+}
+test("Width roundtrip retains distinct notes even when titles match") {
+    var first = card(.note,"Aynı başlık",scene:.home,pinned:true)
+    first.ink = .rose; first.body = "Birinci içerik"; first.updatedAt = date.addingTimeInterval(45)
+    var second = card(.note,"Aynı başlık",scene:.pause)
+    second.ink = .lime; second.body = "İkinci içerik"; second.createdAt = date.addingTimeInterval(60); second.updatedAt = second.createdAt
+    var done = card(.note,"Tamamlanmış",scene:.desk)
+    done.doneAt = date.addingTimeInterval(30)
+    var a = archive([first,second,done]); a.settings.touchBarWidth = 520; a.settings.selectedCardID = second.id
+    let restored = try Archive.decode(a.encoded())
+    try expect(restored == a && restored.version == 1 && restored.cards[0].id != restored.cards[1].id)
+    var edited = restored.cards[0]; try edited.setMessageText("Düzenlenen ilk not"); edited.updatedAt = date.addingTimeInterval(120)
+    var updated = restored; try updated.put(edited)
+    try expect(updated.cards.count == 3 && updated.cards[1] == second && updated.cards[2] == done)
+    try expect(updated.settings == a.settings && updated.cards[0].createdAt == first.createdAt && updated.cards[0].pinned && updated.cards[0].ink == .rose)
 }
 test("Completion removes reminders from display and notifications") { let c = card(.reminder,due:60); var a = archive([c]); try a.finish(c.id,at:date); try expect(a.queue(at:date).isEmpty && a.notificationCards(at:date).isEmpty) }
 test("Completion is idempotent") { let c = card(); var a = archive([c]); try a.finish(c.id,at:date); try a.finish(c.id,at:date.addingTimeInterval(9)); try expect(a.cards[0].doneAt == date) }
@@ -187,6 +253,37 @@ defer { try? FileManager.default.removeItem(at:folder) }
 test("Missing store starts empty") { try expect(try ArchiveStore(directory:folder).load().cards.isEmpty) }
 test("Atomic store keeps previous version") { let store = ArchiveStore(directory:folder); let first = archive([card(.note,"Before")]), second = archive([card(.note,"After")]); try store.save(first); try store.save(second); try expect(try store.load() == second); try expect(try Archive.decode(Data(contentsOf:folder.appendingPathComponent("archive.previous.json"))) == first) }
 test("Invalid candidate cannot overwrite valid file") { let store = ArchiveStore(directory:folder); let before = try Data(contentsOf:store.file); try rejects { try store.save(archive([card(.note,"")])) }; try expect(try Data(contentsOf:store.file) == before) }
+test("Multiple notes and width survive save, edit, switch selection and fresh load") {
+    let store = ArchiveStore(directory:folder.appendingPathComponent("multiple-notes"))
+    var first = card(.note,"Alışveriş",scene:.home,pinned:true); first.ink = .rose; first.body = "Süt ve ekmek"
+    let second = card(.note,"Yarın",scene:.pause)
+    var a = archive([first,second]); a.settings.touchBarWidth = 280; a.settings.selectedCardID = first.id
+    try store.save(a)
+    var restored = try ArchiveStore(directory:store.directory).load()
+    try expect(restored == a)
+    var edit = restored.cards[1]; try edit.setMessageText("Yarın doktor randevusu"); edit.updatedAt = date.addingTimeInterval(60)
+    try restored.put(edit); restored.settings.touchBarWidth = 560; restored.settings.selectedCardID = second.id
+    try store.save(restored)
+    let reopened = try ArchiveStore(directory:store.directory).load()
+    try expect(reopened == restored && reopened.cards[0] == first && reopened.cards[1].id == second.id && reopened.settings.touchBarWidth == 560)
+    try expect(try Archive.decode(Data(contentsOf:store.directory.appendingPathComponent("archive.previous.json"))) == a)
+}
+test("Invalid width save cannot erase notes, selected identity or previous valid archive") {
+    let store = ArchiveStore(directory:folder.appendingPathComponent("invalid-width"))
+    let first = card(.note,"Keep one",scene:.home,pinned:true), second = card(.note,"Keep two",scene:.pause)
+    var a = archive([first,second]); a.settings.touchBarWidth = 320; a.settings.selectedCardID = second.id
+    try store.save(a); a.settings.touchBarWidth = 480; try store.save(a)
+    let before = try Data(contentsOf:store.file)
+    let previousFile = store.directory.appendingPathComponent("archive.previous.json")
+    let previous = try Data(contentsOf:previousFile)
+    for width in [239,561] {
+        var invalid = a; invalid.settings.touchBarWidth = width; invalid.cards.removeAll(); invalid.settings.selectedCardID = nil
+        try rejects { try store.save(invalid) }
+        try rejects { _ = try store.replace(with:invalid) }
+        try expect(try Data(contentsOf:store.file) == before && Data(contentsOf:previousFile) == previous)
+        try expect(try store.load() == a,"Rejected width changed persisted notes or their metadata")
+    }
+}
 test("Corrupt original is never silently overwritten") { let store = ArchiveStore(directory:folder); let bad = Data("original-corrupt-record".utf8); try bad.write(to:store.file); try rejects { _ = try store.load() }; try rejects { try store.save(Archive()) }; try expect(try Data(contentsOf:store.file) == bad) }
 test("Explicit replacement keeps raw recovery copy") { let store = ArchiveStore(directory:folder); let before = try Data(contentsOf:store.file); let recovery = try store.replace(with:Archive()); try expect(try Data(contentsOf:recovery) == before); try expect(try store.load().cards.isEmpty) }
 test("Invalid replacement leaves original untouched") { let store = ArchiveStore(directory:folder); let before = try Data(contentsOf:store.file); try rejects { _ = try store.replace(with:archive([card(.note,"")])) }; try expect(try Data(contentsOf:store.file) == before) }

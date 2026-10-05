@@ -45,10 +45,13 @@ final class DeskController: NSWindowController, NSTouchBarDelegate, NSWindowDele
     let kinds:[CardKind] = [.note,.reminder,.announcement]
     var kind=NSSegmentedControl()
     let messageField=MessageView(),dueField=NSDatePicker(),preview=RailView(frame:.zero)
+    let widthSlider=NSSlider()
     var saveButton=NSButton(),newButton=NSButton(),deleteButton=NSButton(),finishButton=NSButton(),snoozeButton=NSButton()
     var timeButtons:[NSButton] = []
     private let dateRow=NSView(),messageScroll=NSScrollView(),listScroll=NSScrollView()
     private var subtitle=NSTextField(),hint=NSTextField(),listTitle=NSTextField(),status=NSTextField()
+    private var widthLabel=NSTextField(),narrowLabel=NSTextField(),wideLabel=NSTextField(),widthValue=NSTextField()
+    private var appliedWidth:Int?
     var now:()->Date
     var copyText:(String)->Void = { text in NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text,forType:.string) }
     var language:Language { archive.settings.language }
@@ -62,9 +65,9 @@ final class DeskController: NSWindowController, NSTouchBarDelegate, NSWindowDele
         self.store=store; self.notifications=notifications; self.now=now; archive=initial
         if let store=store { do { archive=try store.load() } catch { blocked=true; hasError=true; message="Kayıt açılamadı. Veriler menüsünden yedeği yükle veya önceki kaydı kurtar. / Use Data to restore a backup or recover the previous archive." } }
         activeID=archive.settings.selectedCardID
-        let window=NSWindow(contentRect:NSRect(x:0,y:0,width:640,height:590),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
+        let window=NSWindow(contentRect:NSRect(x:0,y:0,width:640,height:676),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
         window.title="Şerit"; window.appearance=NSAppearance(named:.darkAqua); window.isReleasedWhenClosed=false
-        super.init(window:window); window.delegate=self; build(); window.touchBar=makeTouchBar(); messageField.touchBar=window.touchBar; dueField.touchBar=window.touchBar
+        super.init(window:window); window.delegate=self; build(); window.touchBar=makeTouchBar(); messageField.touchBar=window.touchBar; dueField.touchBar=window.touchBar; widthSlider.touchBar=window.touchBar
         if statusItem { self.statusItem=NSStatusBar.system.statusItem(withLength:NSStatusItem.variableLength) }
         notifications?.onError = { [weak self] text in self?.message=text; self?.hasError=true; self?.updateStatus() }
         notifications?.onOpen = { [weak self] id in self?.showDesk(); if let id=id { self?.selectCard(id) } }
@@ -81,12 +84,13 @@ final class DeskController: NSWindowController, NSTouchBarDelegate, NSWindowDele
     required init?(coder:NSCoder) { fatalError() }
     deinit { timer?.invalidate(); animation?.invalidate(); if let item=statusItem { NSStatusBar.system.removeStatusItem(item) } }
     private func build() {
-        let root=Canvas(frame:NSRect(x:0,y:0,width:640,height:590)); window?.contentView=root
+        let root=Canvas(frame:NSRect(x:0,y:0,width:640,height:676)); window?.contentView=root
         _=label("Şerit",NSRect(x:24,y:17,width:590,height:36),size:27,weight:.semibold,in:root)
         subtitle=label("",NSRect(x:24,y:58,width:590,height:22),size:12,color:.postMuted,in:root)
         kind=NSSegmentedControl(labels:["Not","Hatırlatıcı","Duyuru"],trackingMode:.selectOne,target:self,action:#selector(kindChanged))
         kind.frame=NSRect(x:22,y:89,width:414,height:32); kind.selectedSegment=0; root.addSubview(kind)
-        newButton=button("Yeni",NSRect(x:530,y:89,width:88,height:32),target:self,action:#selector(newAction),in:root)
+        newButton=button("+ Yeni not",NSRect(x:498,y:89,width:120,height:32),target:self,action:#selector(newAction),in:root)
+        newButton.bezelColor=Ink.aqua.color
         messageScroll.frame=NSRect(x:24,y:134,width:592,height:94); messageScroll.hasVerticalScroller=true; messageScroll.borderType = .bezelBorder
         messageField.frame=NSRect(x:0,y:0,width:574,height:94); messageField.delegate=self; messageField.isRichText=false; messageField.allowsUndo=true; messageField.font = .systemFont(ofSize:14); messageField.textColor = .postWhite; messageField.insertionPointColor = .postWhite; messageField.backgroundColor = .postPanel; messageField.textContainerInset=NSSize(width:8,height:8); messageField.isVerticallyResizable=true; messageField.autoresizingMask = [.width]; messageField.textContainer?.widthTracksTextView=true; messageScroll.documentView=messageField; root.addSubview(messageScroll)
         hint=label("",NSRect(x:24,y:245,width:592,height:23),size:12,color:.postMuted,in:root)
@@ -97,11 +101,15 @@ final class DeskController: NSWindowController, NSTouchBarDelegate, NSWindowDele
         finishButton=button("Tamamla",NSRect(x:245,y:285,width:137,height:34),target:self,action:#selector(finishAction),in:root)
         snoozeButton=button("+5 dk ertele",NSRect(x:386,y:285,width:138,height:34),target:self,action:#selector(snoozeAction),in:root)
         deleteButton=button("Sil",NSRect(x:531,y:285,width:89,height:34),target:self,action:#selector(deleteAction),in:root)
-        _=label("Touch Bar",NSRect(x:24,y:334,width:592,height:18),size:11,color:.postMuted,in:root)
-        preview.frame=NSRect(x:24,y:357,width:592,height:38); wire(preview); root.addSubview(preview)
-        listTitle=label("",NSRect(x:24,y:415,width:592,height:23),size:13,weight:.medium,in:root)
-        listScroll.frame=NSRect(x:24,y:440,width:592,height:103); listScroll.hasVerticalScroller=true; listScroll.drawsBackground=false; root.addSubview(listScroll)
-        status=label("",NSRect(x:24,y:552,width:592,height:30),size:10,color:.postMuted,in:root)
+        widthLabel=label("",NSRect(x:24,y:333,width:592,height:18),size:11,color:.postMuted,in:root)
+        narrowLabel=label("",NSRect(x:24,y:358,width:42,height:18),size:11,color:.postMuted,in:root)
+        widthSlider.frame=NSRect(x:72,y:351,width:384,height:29); widthSlider.minValue=Double(Settings.minimumTouchBarWidth); widthSlider.maxValue=Double(Settings.maximumTouchBarWidth); widthSlider.integerValue=archive.settings.touchBarWidth; widthSlider.isContinuous=false; widthSlider.target=self; widthSlider.action=#selector(widthChanged); root.addSubview(widthSlider)
+        wideLabel=label("",NSRect(x:468,y:358,width:56,height:18),size:11,color:.postMuted,in:root)
+        widthValue=label("",NSRect(x:540,y:358,width:76,height:18),size:11,color:.postWhite,in:root)
+        preview.frame=NSRect(x:24,y:389,width:archive.settings.touchBarWidth,height:38); wire(preview); root.addSubview(preview)
+        listTitle=label("",NSRect(x:24,y:444,width:592,height:23),size:13,weight:.medium,in:root)
+        listScroll.frame=NSRect(x:24,y:471,width:592,height:160); listScroll.hasVerticalScroller=true; listScroll.drawsBackground=false; root.addSubview(listScroll)
+        status=label("",NSRect(x:24,y:639,width:592,height:30),size:10,color:.postMuted,in:root)
     }
     private func wire(_ rail:RailView) {
         rail.onPrevious={ [weak self] in self?.cycle(-1) }; rail.onNext={ [weak self] in self?.cycle(1) }
@@ -111,7 +119,9 @@ final class DeskController: NSWindowController, NSTouchBarDelegate, NSWindowDele
     func applyLanguage() {
         subtitle.stringValue=tr(language,"Yaz. Kaydet. Touch Bar’da gör.","Write. Save. See it on your Touch Bar.")
         for (i,k) in kinds.enumerated() { kind.setLabel(k == .reminder ? tr(language,"Hatırlatıcı","Reminder") : k.name(language),forSegment:i) }
-        newButton.title=tr(language,"Yeni","New"); deleteButton.title=tr(language,"Sil","Delete"); finishButton.title=tr(language,"Tamamla","Done"); snoozeButton.title=tr(language,"+5 dk ertele","Snooze 5 min")
+        newButton.title=tr(language,"+ Yeni not","+ New note"); deleteButton.title=tr(language,"Sil","Delete"); finishButton.title=tr(language,"Tamamla","Done"); snoozeButton.title=tr(language,"+5 dk ertele","Snooze 5 min")
+        widthLabel.stringValue=tr(language,"Touch Bar alanı","Touch Bar space"); narrowLabel.stringValue=tr(language,"Dar","Narrow"); wideLabel.stringValue=tr(language,"Geniş","Wide")
+        widthSlider.setAccessibilityLabel(tr(language,"Touch Bar şerit genişliği","Touch Bar strip width"))
         for b in timeButtons { b.title=tr(language,"+\(b.tag) dk","+\(b.tag) min") }
         messageField.placeholder=tr(language,"Mesajını yaz…","Write your message…")
         dueField.locale=Locale(identifier:language == .tr ? "tr_TR" : "en_US")
@@ -132,12 +142,26 @@ final class DeskController: NSWindowController, NSTouchBarDelegate, NSWindowDele
         if let next=list.first(where:{newIDs.contains($0.id)}) { activeID=next.id }
         lastDueIDs=dueIDs
         if !list.contains(where:{$0.id==activeID}) { activeID=list.first?.id }
+        updateWidth()
         for rail in [preview,physicalRail].compactMap({$0}) { rail.update(card:displayed,privacy:archive.settings.privacy,motion:archive.settings.motion,language:language); rail.previous.isEnabled=list.count>1; rail.next.isEnabled=list.count>1 }
         if rebuild || dueChanged || list != lastList { rebuildList(list) }; lastList=list; updateEditor(); updateStatus(); updateMenu()
     }
+    private func updateWidth(force:Bool=false) {
+        let width=archive.settings.touchBarWidth
+        widthSlider.isEnabled = !blocked; widthValue.stringValue="\(width) pt"
+        guard force || appliedWidth != width else { return }
+        appliedWidth=width; widthSlider.integerValue=width
+        preview.setFrameSize(NSSize(width:width,height:38)); preview.needsLayout=true; preview.layoutSubtreeIfNeeded()
+        physicalRail?.setTouchBarWidth(width)
+    }
+    @objc func widthChanged() {
+        let requested=max(Settings.minimumTouchBarWidth,min(Settings.maximumTouchBarWidth,widthSlider.integerValue))
+        _=change { $0.settings.touchBarWidth=requested }
+        updateWidth(force:true)
+    }
     private func rebuildList(_ cards:[Card]) {
-        listTitle.stringValue=tr(language,"Kaydedilenler · \(cards.count)","Saved messages · \(cards.count)")
-        let document=Canvas(frame:NSRect(x:0,y:0,width:574,height:max(103,cards.count*53)))
+        listTitle.stringValue=tr(language,"Kaydedilen notlar ve mesajlar · \(cards.count)","Saved notes and messages · \(cards.count)")
+        let document=Canvas(frame:NSRect(x:0,y:0,width:574,height:max(160,cards.count*53)))
         if cards.isEmpty { _=label(tr(language,"Henüz mesaj yok. Yukarıya bir şey yazıp kaydet.","No messages yet. Write something above and save."),NSRect(x:12,y:20,width:550,height:54),size:12,color:.postMuted,in:document) }
         for (i,c) in cards.enumerated() {
             let row=MessageRow(frame:NSRect(x:0,y:i*53,width:574,height:51)); row.card=c; row.selectedMessage=c.id==activeID; row.language=language; row.date=now(); row.identifier=NSUserInterfaceItemIdentifier(c.id.uuidString); row.target=self; row.action=#selector(rowAction(_:)); row.setAccessibilityLabel(c.messageText); document.addSubview(row)
@@ -147,7 +171,7 @@ final class DeskController: NSWindowController, NSTouchBarDelegate, NSWindowDele
         dateRow.isHidden=selectedKind != .reminder; hint.isHidden=selectedKind == .reminder
         hint.stringValue=selectedKind == .announcement ? tr(language,"Uzun duyuru Touch Bar’da kayar.","Long announcements scroll across the Touch Bar.") : tr(language,"Seçtiğin not şeritte kalır.","Your chosen note stays on the strip.")
         let saved=archive.cards.first{$0.id==editingID && $0.doneAt==nil}
-        saveButton.title=tr(language,"Kaydet","Save"); saveButton.isEnabled = !blocked && !messageField.string.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty
+        saveButton.title=saved == nil ? tr(language,"Yeni kaydet","Save new") : tr(language,"Güncelle","Update"); saveButton.isEnabled = !blocked && !messageField.string.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty
         deleteButton.isEnabled = !blocked && saved != nil
         finishButton.isHidden=saved?.kind != .reminder || selectedKind != .reminder; snoozeButton.isHidden=finishButton.isHidden
         finishButton.isEnabled = !blocked && saved?.kind == .reminder; snoozeButton.isEnabled=finishButton.isEnabled
@@ -257,7 +281,7 @@ final class DeskController: NSWindowController, NSTouchBarDelegate, NSWindowDele
     override func makeTouchBar()->NSTouchBar { let bar=NSTouchBar(); bar.delegate=self; bar.defaultItemIdentifiers=[.postRail,.postQuick]; bar.principalItemIdentifier = .postRail; return bar }
     func touchBar(_ touchBar:NSTouchBar,makeItemForIdentifier id:NSTouchBarItem.Identifier)->NSTouchBarItem? {
         if id == .postRail {
-            let item=NSCustomTouchBarItem(identifier:id),rail=RailView(frame:NSRect(x:0,y:0,width:600,height:30)); wire(rail); rail.widthAnchor.constraint(greaterThanOrEqualToConstant:240).isActive=true; rail.heightAnchor.constraint(equalToConstant:30).isActive=true; item.view=rail; physicalRail=rail; rail.update(card:displayed,privacy:archive.settings.privacy,motion:archive.settings.motion,language:language); return item
+            let item=NSCustomTouchBarItem(identifier:id),rail=RailView(frame:NSRect(x:0,y:0,width:archive.settings.touchBarWidth,height:30)); wire(rail); rail.setTouchBarWidth(archive.settings.touchBarWidth); item.view=rail; physicalRail=rail; rail.update(card:displayed,privacy:archive.settings.privacy,motion:archive.settings.motion,language:language); return item
         }
         if id == .postQuick { let item=NSCustomTouchBarItem(identifier:id),b=NSButton(title:"+",target:self,action:#selector(quickAction)); b.setAccessibilityLabel(tr(language,"Yeni not","New note")); item.view=b; return item }; return nil
     }
