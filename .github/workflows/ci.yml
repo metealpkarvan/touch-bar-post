@@ -1,0 +1,45 @@
+name: Verify native Mac app
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15-intel
+            arch: x86_64
+          - os: macos-latest
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify native CPU
+        env:
+          EXPECTED_POST_ARCH: ${{ matrix.arch }}
+        run: test "$(uname -m)" = "$EXPECTED_POST_ARCH"
+      - run: swift run --disable-sandbox -j 2 PostRulesTests
+      - run: swift build --disable-sandbox -j 2 --product TouchBarPost
+      - run: .build/debug/TouchBarPost --smoke-test --screenshots output/verification
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: previews-${{ matrix.arch }}
+          path: output/verification/*.png
+          if-no-files-found: ignore
+          retention-days: 7
+  universal:
+    needs: native
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash scripts/package.sh 1.0.0
+      - uses: actions/upload-artifact@v7
+        with:
+          name: TouchBarPost-universal
+          path: |
+            dist/TouchBarPost-v1.0.0-universal.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
